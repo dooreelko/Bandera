@@ -27,6 +27,7 @@ public class ModelBinder {
 	private final ModelNormalizer normalizer;
 	private Object[] preValues;
 	private boolean softUpdate;
+	private boolean dirty;
 
 	public ModelBinder(ModelNormalizer normalizer, View[] views) {
 		this.normalizer = normalizer;
@@ -89,6 +90,7 @@ public class ModelBinder {
 
 		for (int i=0; i<newValues.length; i++) {
 			if (!preValues[i].equals(newValues[i])) {
+				dirty = true;
 				preValues[i] = newValues[i];
 				bindOneViewValue(views[i], i);
 			}
@@ -146,5 +148,9 @@ public class ModelBinder {
 				notifyViewChanged(s, pos);
 			}
 		});
+	}
+	
+	public boolean isDirty() {
+		return dirty;
 	}
 }
