@@ -1,9 +1,12 @@
 package doo.bandera.annotations;
 
-import java.lang.annotation.ElementType;
+import static java.lang.annotation.ElementType.METHOD;
+import static java.lang.annotation.RetentionPolicy.CLASS;
+
+import java.lang.annotation.Retention;
 import java.lang.annotation.Target;
 
-@Target({ElementType.METHOD, ElementType.FIELD})
+@Retention(CLASS) @Target(METHOD)
 public @interface Bind {
 	int[] value();
 }

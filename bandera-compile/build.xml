@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Configuration of the Ant build system to generate a Jar file -->
+<project name="BanderaCompile" default="CreateJar">
+    <property name="lib.dir" value="${build.dir}/lib"/>
+
+    <property name="src.dir" value="src"/>
+
+    <property name="build.dir" value="build"/>
+    <property name="classes.dir" value="${build.dir}/"/>
+    <property name="meta.dir" value="${build.dir}/META-INF"/>
+    <property name="jar.dir" value="${build.dir}/jar"/>
+
+	<path id="classpath">
+		<fileset dir="${classes.dir}" />
+	</path>
+
+	<target name="clean">
+		<delete dir="${build.dir}" />
+	</target>
+
+	<target name="compile" description="Compiles the code.">
+		<mkdir dir="${classes.dir}" />
+		<javac srcdir="${src.dir}" destdir="${classes.dir}"
+			classpathref="classpath" />
+	</target>
+	
+	<target name="CreateJar" description="Create Jar file" depends="compile">
+		<jar jarfile="bandera-compile.jar" basedir="./build">
+			<service type="javax.annotation.processing.Processor"
+				provider="doo.bandera.ModelBindingProcessor" />
+		</jar>
+	</target>
+</project>
