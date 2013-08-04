@@ -7,6 +7,6 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.Target;
 
 @Retention(CLASS) @Target(METHOD)
-public @interface Bind {
+public @interface BindModel {
 	int[] value();
 }

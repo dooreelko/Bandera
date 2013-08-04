@@ -14,8 +14,7 @@ public class BrutalWriter {
 			Map<Integer, BindingInfo> thatClassBindings) {
 
 		String simpleName = modelClass.getSimpleName().toString();
-		String namespace = modelClass.getQualifiedName()
-				.subSequence(0, modelClass.getQualifiedName().length() - simpleName.length() - 1).toString();
+		String namespace = getNamespace(modelClass);
 
 		StringWriter sw = new StringWriter();
 
@@ -39,6 +38,8 @@ public class BrutalWriter {
 		sw.append(String.format("			return model;\n"));
 		sw.append(String.format("		}\n"));
 
+		
+		
 		sw.append(String.format("		@Override\n"));
 		sw.append(String.format("		public Object[] getModelValues() {\n"));
 		sw.append(String.format("			return new Object[] {\n"));
@@ -50,6 +51,29 @@ public class BrutalWriter {
 		sw.append(String.format("			};\n"));
 		sw.append(String.format("		}\n"));
 
+		
+		
+		
+		
+		sw.append(String.format("		@Override\n"));
+		sw.append(String.format("		public ViewState[] getViewStates() {\n"));
+		sw.append(String.format("			return new ViewState[] {\n"));
+
+		for (int resId : resIds) {
+			BindingInfo info = thatClassBindings.get(resId);
+			if (info.viewStater != null) {
+				sw.append(String.format("				model.%s(),\n", info.viewStater.getSimpleName()));
+			} else {
+				sw.append(String.format("				ViewState.NotSet,\n"));
+			}
+		}
+
+		sw.append(String.format("			};\n"));
+		sw.append(String.format("		}\n"));
+		
+
+		
+		
 		sw.append(String.format("		@Override\n"));
 		sw.append(String.format("		public void setModelValue(final Object newValue, final int position) {\n"));
 		sw.append(String.format("			switch(position) {\n"));
@@ -73,6 +97,11 @@ public class BrutalWriter {
 		return sw.toString();
 	}
 
+	public static String getNamespace(TypeElement modelClass) {
+		return modelClass.getQualifiedName()
+				.subSequence(0, modelClass.getQualifiedName().length() - modelClass.getSimpleName().toString().length() - 1).toString();
+	}
+
 	public static String renderModels(List<ModelResIds> binderConfigs) {
 		try {
 
@@ -83,8 +112,8 @@ public class BrutalWriter {
 			sw.append(String.format("public class Models {\n"));
 
 			for (ModelResIds mi : binderConfigs) {
-				sw.append(String.format("	public static doo.bandera.ModelBinder Bind(android.app.Activity where, %s model) {\n", mi.modelName));
-				 sw.append(String.format("		return new ModelBinder(new %sNormalizer(model),\n", mi.modelName));
+				sw.append(String.format("	public static doo.bandera.ModelBinder Bind(android.app.Activity where, %s model) {\n", mi.modelClass.getQualifiedName()));
+				 sw.append(String.format("		return new ModelBinder(new %sNormalizer(model),\n", mi.modelClass.getQualifiedName()));
 				 sw.append(String.format("				new android.view.View[] {\n"));
 				
 				 for (int resId : mi.resIds) {

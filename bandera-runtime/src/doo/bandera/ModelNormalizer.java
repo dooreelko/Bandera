@@ -9,6 +9,15 @@ package doo.bandera;
  *
  */
 public interface ModelNormalizer {
+	public enum ViewState {
+		NotSet,
+		Normal,
+		ReadOnly,
+		Invisible,
+		Gone
+	}
+	
 	Object[] getModelValues();
+	ViewState[] getViewStates();
 	void setModelValue(Object newValue, int position);
 }

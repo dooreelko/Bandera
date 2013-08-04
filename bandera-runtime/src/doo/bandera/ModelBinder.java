@@ -12,6 +12,7 @@ import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.TextView;
 
+import doo.bandera.ModelNormalizer.ViewState;
 import doo.bandera.helper.SimpleTextWatcher;
 
 //TODO: this goes to Bandera-runtime
@@ -97,6 +98,33 @@ public class ModelBinder {
 		}
 
 		softUpdate = false;
+		updateViewStates();
+	}
+
+	private void updateViewStates() {
+		ViewState[] viewStates = normalizer.getViewStates();
+		for (int x = 0; x < views.length; x++) {
+			View v = views[x];
+			
+			switch (viewStates[x])
+			{
+				case NotSet:
+					break;
+				case Invisible:
+					v.setVisibility(View.INVISIBLE);
+					break;
+				case Gone:
+					v.setVisibility(View.GONE);
+					break;
+				case Normal:
+					v.setEnabled(true);
+					v.setVisibility(View.VISIBLE);
+					break;
+				case ReadOnly:
+					v.setEnabled(false);
+					break;
+			}
+		}		
 	}
 
 	private void bindTextView(final TextView v, final String value) {

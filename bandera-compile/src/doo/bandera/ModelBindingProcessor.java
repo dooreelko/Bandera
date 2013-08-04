@@ -25,28 +25,33 @@ import javax.lang.model.element.ExecutableElement;
 import javax.lang.model.element.TypeElement;
 import javax.tools.JavaFileObject;
 
-import doo.bandera.annotations.Bind;
+import doo.bandera.annotations.BindModel;
+import doo.bandera.annotations.BindState;
 
-@SupportedAnnotationTypes({ "doo.bandera.annotations.Bind" })
+@SupportedAnnotationTypes({ 
+	"doo.bandera.annotations.BindModel", 
+	"doo.bandera.annotations.BindState" })
 @SupportedSourceVersion(SourceVersion.RELEASE_6)
 public class ModelBindingProcessor extends AbstractProcessor {
 	public class BindingInfo {
 		public ExecutableElement getter;
 		public ExecutableElement setter;
+		public ExecutableElement viewStater;
 
 		@Override
 		public String toString() {
-			return String.format("getter: %s, setter: %s", getter != null ? getter.getSimpleName() : "<none>",
-					setter != null ? setter.getSimpleName() : "<none>");
+			return String.format("getter: %s, setter: %s, viewStater: %s", getter != null ? getter.getSimpleName() : "<none>",
+					setter != null ? setter.getSimpleName() : "<none>",
+					viewStater != null ? viewStater.getSimpleName() : "<none>");
 		}
 	}
 	
 	public class ModelResIds {
-		public String modelName;
+		public TypeElement modelClass;
 		public List<Integer> resIds;
 
-		public ModelResIds(String modelName, List<Integer> resIds) {
-			this.modelName = modelName;
+		public ModelResIds(TypeElement modelClass, List<Integer> resIds) {
+			this.modelClass = modelClass;
 			this.resIds = resIds;
 		}
 	}
@@ -57,65 +62,79 @@ public class ModelBindingProcessor extends AbstractProcessor {
 	public synchronized void init(ProcessingEnvironment env) {
 		super.init(env);
 
-		/*
-		 * elementUtils = env.getElementUtils(); typeUtils = env.getTypeUtils();
-		 */
 		filer = env.getFiler();
 	}
 
 	@Override
 	public boolean process(Set<? extends TypeElement> annotations, RoundEnvironment env) {
-		Map<Element, Map<Integer, BindingInfo>> classBindings = new Hashtable<Element, Map<Integer, BindingInfo>>();
+		
+		try {
+			Map<Element, Map<Integer, BindingInfo>> classBindings = new Hashtable<Element, Map<Integer, BindingInfo>>();
+	
+			buildGettersAndSetters(env, classBindings);
+	
+			buildViewStaters(env, classBindings);
+			
+			generateJava(classBindings);
+		} catch (Exception e) {
+			processingEnv.getMessager().printMessage(ERROR, e.toString());
+		}
+		return true;
+	}
 
-		for (Element elem : env.getElementsAnnotatedWith(Bind.class)) {
-			note(elem, "Starting processing element");
-
+	protected void buildGettersAndSetters(RoundEnvironment env, Map<Element, Map<Integer, BindingInfo>> classBindings) {
+		for (Element elem : env.getElementsAnnotatedWith(BindModel.class)) {
 			Element modelClass = elem.getEnclosingElement();
-			note(elem, "Detected class %s", modelClass.getSimpleName());
 
-			if (!classBindings.containsKey(modelClass)) {
-				classBindings.put(modelClass, new Hashtable<Integer, ModelBindingProcessor.BindingInfo>());
-			}
+			ensureModelClassInBindings(classBindings, modelClass);
 
-			int[] resIds = elem.getAnnotation(Bind.class).value();
+			int[] resIds = elem.getAnnotation(BindModel.class).value();
 
 			for (int resId : resIds) {
-				if (!classBindings.containsKey(modelClass)){
-					classBindings.put(modelClass, new Hashtable<Integer, ModelBindingProcessor.BindingInfo>());
-				}					
+				ensureBindingInfo(classBindings, modelClass, resId);
 				
-				if (!classBindings.get(modelClass).containsKey(resId)) {
-					classBindings.get(modelClass).put(resId, new BindingInfo());
-				}
-				
-				if (elem.getSimpleName().charAt(0) == 'g') {
+				if (elem.getSimpleName().toString().startsWith("get")) { // TODO: "is, has" if needed
 					classBindings.get(modelClass).get(resId).getter = (ExecutableElement) elem;
-				} else if (elem.getSimpleName().charAt(0) == 's') {
+				} else if (elem.getSimpleName().toString().startsWith("set")) {
 					classBindings.get(modelClass).get(resId).setter = (ExecutableElement) elem;
 				}
 			}
 		}
+	}
 
-		generateJava(classBindings);
+	protected void buildViewStaters(RoundEnvironment env, Map<Element, Map<Integer, BindingInfo>> classBindings) {
+		for (Element elem : env.getElementsAnnotatedWith(BindState.class)) {
+			Element modelClass = elem.getEnclosingElement();
 
-		return true;
+			ensureModelClassInBindings(classBindings, modelClass);
+			int[] resIds = elem.getAnnotation(BindState.class).value();
+			for (int resId : resIds) {
+				ensureBindingInfo(classBindings, modelClass, resId);
+				
+				classBindings.get(modelClass).get(resId).viewStater = (ExecutableElement)elem;
+			}
+		}
+	}
+
+	protected void ensureBindingInfo(Map<Element, Map<Integer, BindingInfo>> classBindings, Element modelClass,
+			int resId) {
+		if (!classBindings.get(modelClass).containsKey(resId)) {
+			classBindings.get(modelClass).put(resId, new BindingInfo());
+		}
+	}
+
+	protected void ensureModelClassInBindings(Map<Element, Map<Integer, BindingInfo>> classBindings, Element modelClass) {
+		if (!classBindings.containsKey(modelClass)) {
+			classBindings.put(modelClass, new Hashtable<Integer, ModelBindingProcessor.BindingInfo>());
+		}
 	}
 
 	protected void generateJava(Map<Element, Map<Integer, BindingInfo>> classBindings) {
 		List<ModelResIds> binderConfigs = new ArrayList<ModelResIds>();
-		
+
 		for (Entry<Element, Map<Integer, BindingInfo>> pair : classBindings.entrySet()) {
 			TypeElement modelClass = (TypeElement) pair.getKey();
 			Map<Integer, BindingInfo> thatClassBindings = pair.getValue();
-
-//			String classText = "/*\n";
-//
-//			classText += String.format("Collected following for %s\n", modelClass.getSimpleName());
-//			for (Entry<Integer, BindingInfo> infos : thatClassBindings.entrySet()) {
-//				classText += String.format("ResId: %d, bindings: %s\n", infos.getKey(), infos.getValue().toString());
-//			}
-//
-//			classText += "*/";
 
 			List<Integer> resIds = new ArrayList<Integer>(thatClassBindings.keySet());
 			Collections.sort(resIds);
@@ -123,10 +142,12 @@ public class ModelBindingProcessor extends AbstractProcessor {
 			String normalizerClassName = modelClass.getQualifiedName() + "Normalizer";
 			writeCodeForClass(modelClass, normalizerClassName, BrutalWriter.renderNormalizer(modelClass, resIds, thatClassBindings));
 		
-			binderConfigs.add(new ModelResIds(modelClass.getQualifiedName().toString(), resIds));
+			binderConfigs.add(new ModelResIds(modelClass, resIds));
 		}
 
-		writeCodeForClass(null, "doo.bandera.Models", BrutalWriter.renderModels(binderConfigs));
+		if (!classBindings.isEmpty()) {
+			writeCodeForClass(null, "doo.bandera.Models", BrutalWriter.renderModels(binderConfigs));
+		}
 	}
 
 	protected void writeCodeForClass(TypeElement modelClass, String className, String classText) {
