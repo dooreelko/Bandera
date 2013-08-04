@@ -45,7 +45,12 @@ public class BrutalWriter {
 		sw.append(String.format("			return new Object[] {\n"));
 
 		for (int resId : resIds) {
-			sw.append(String.format("				model.%s(),\n", thatClassBindings.get(resId).getter.getSimpleName()));
+			BindingInfo info = thatClassBindings.get(resId);
+			if (info.getter != null) {
+				sw.append(String.format("				model.%s(),\n", thatClassBindings.get(resId).getter.getSimpleName()));
+			} else {
+				sw.append(String.format("				null,\n"));
+			}
 		}
 
 		sw.append(String.format("			};\n"));
@@ -113,7 +118,7 @@ public class BrutalWriter {
 
 			for (ModelResIds mi : binderConfigs) {
 				sw.append(String.format("	public static doo.bandera.ModelBinder Bind(android.app.Activity where, %s model) {\n", mi.modelClass.getQualifiedName()));
-				 sw.append(String.format("		return new ModelBinder(new %sNormalizer(model),\n", mi.modelClass.getQualifiedName()));
+				 sw.append(String.format("		return new ModelBinder(where, new %sNormalizer(model),\n", mi.modelClass.getQualifiedName()));
 				 sw.append(String.format("				new android.view.View[] {\n"));
 				
 				 for (int resId : mi.resIds) {
