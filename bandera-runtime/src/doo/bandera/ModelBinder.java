@@ -1,8 +1,10 @@
 package doo.bandera;
 
+import java.text.DateFormat;
 import java.util.Calendar;
 import java.util.Date;
 
+import android.content.Context;
 import android.net.Uri;
 import android.view.View;
 import android.widget.DatePicker;
@@ -10,18 +12,19 @@ import android.widget.DatePicker.OnDateChangedListener;
 import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.ImageView;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 
 import doo.bandera.ModelNormalizer.ViewState;
 import doo.bandera.helper.SimpleTextWatcher;
 
-//TODO: this goes to Bandera-runtime
 public class ModelBinder {
 	private static final Class<DatePicker> CLASS_NAME_DATE_PICKER = DatePicker.class;
 	private static final Class<EditText> CLASS_NAME_EDIT_TEXT = EditText.class;
 	private static final Class<TextView> CLASS_NAME_TEXT_VIEW = TextView.class;
 	private static final Class<ImageView> CLASS_NAME_IMAGE_VIEW = ImageView.class;
 	private static final Class<ImageButton> CLASS_NAME_IMAGE_BUTTON = ImageButton.class;
+	private static final Class<ProgressBar> CLASS_NAME_PROGRESS_BAR = ProgressBar.class;
 
 	
 	private final View[] views;
@@ -30,16 +33,20 @@ public class ModelBinder {
 	private boolean softUpdate;
 	private boolean dirty;
 
-	public ModelBinder(ModelNormalizer normalizer, View[] views) {
+	DateFormat dateFormatter;	
+	
+	public ModelBinder(Context ctx, ModelNormalizer normalizer, View[] views) {
 		this.normalizer = normalizer;
 		this.views = views;
 
 		this.preValues = normalizer.getModelValues();
+		dateFormatter = DateFormat.getDateInstance();
 		
-		bindViewsValues();
+		bindViews();
+		updateViewStates();
 	}
 
-	private void bindViewsValues() {
+	private void bindViews() {
 		for (int x = 0; x < views.length; x++) {
 			View v = views[x];
 			bindOneViewValue(v, x);
@@ -50,17 +57,22 @@ public class ModelBinder {
 	protected void bindOneViewValue(View v, int pos) {
 		Class<? extends View> viewClass = v.getClass();
 		Object value = normalizer.getModelValues()[pos];
+		if (value == null) {
+			return;
+		}
 		
 		if (viewClass == CLASS_NAME_TEXT_VIEW){
-			bindTextView((TextView)v, value.toString());
+			bindTextView((TextView)v, value);
 		} else if (viewClass == CLASS_NAME_EDIT_TEXT){
-			bindTextView((EditText)v, value.toString());
+			bindTextView((EditText)v, value);
 		} else if (viewClass == CLASS_NAME_DATE_PICKER){
 			bindDatePicker((DatePicker)v, (Date)value, pos);
 		} else if (viewClass == CLASS_NAME_IMAGE_VIEW){
 			bindImageView((ImageView)v, value);
 		} else if (viewClass == CLASS_NAME_IMAGE_BUTTON){
 			bindImageView((ImageButton)v, value);
+		} else if (viewClass == CLASS_NAME_PROGRESS_BAR){
+			bindProgressBar((ProgressBar)v, value);
 		}
 	}
 
@@ -90,7 +102,7 @@ public class ModelBinder {
 		Object[] newValues = normalizer.getModelValues();
 
 		for (int i=0; i<newValues.length; i++) {
-			if (!preValues[i].equals(newValues[i])) {
+			if ((preValues[i] == null && newValues[i] != null) && !preValues[i].equals(newValues[i])) {
 				dirty = true;
 				preValues[i] = newValues[i];
 				bindOneViewValue(views[i], i);
@@ -127,8 +139,15 @@ public class ModelBinder {
 		}		
 	}
 
-	private void bindTextView(final TextView v, final String value) {
-		v.setText(value);
+	private void bindTextView(final TextView v, final Object value) {
+		String stringValue;
+		if (dateFormatter != null && value instanceof Date) {
+			stringValue = dateFormatter.format(value);
+		} else {
+			stringValue = value.toString();
+		}
+		
+		v.setText(stringValue);
 	}
 	
 	private void bindImageView(ImageView v, Object value) {
@@ -140,6 +159,11 @@ public class ModelBinder {
 		}
 		
 		v.setImageURI(uri);
+	}
+	
+	private void bindProgressBar(ProgressBar v, Object value) {
+		v.setMax(100);
+		v.setProgress((Integer) value);
 	}
 
 	private void bindDatePicker(final DatePicker v, final Date value, final int pos) {
@@ -180,5 +204,9 @@ public class ModelBinder {
 	
 	public boolean isDirty() {
 		return dirty;
+	}
+	
+	public void setDateFormatter(DateFormat formatter) {
+		dateFormatter = formatter;
 	}
 }
