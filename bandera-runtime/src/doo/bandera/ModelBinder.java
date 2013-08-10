@@ -102,7 +102,7 @@ public class ModelBinder {
 		Object[] newValues = normalizer.getModelValues();
 
 		for (int i=0; i<newValues.length; i++) {
-			if ((preValues[i] == null && newValues[i] != null) && !preValues[i].equals(newValues[i])) {
+			if ((preValues[i] == null && newValues[i] != null) || !preValues[i].equals(newValues[i])) {
 				dirty = true;
 				preValues[i] = newValues[i];
 				bindOneViewValue(views[i], i);
@@ -163,7 +163,7 @@ public class ModelBinder {
 	
 	private void bindProgressBar(ProgressBar v, Object value) {
 		v.setMax(100);
-		v.setProgress((Integer) value);
+		v.setProgress(value instanceof Long ? ((Long)value).intValue() : (Integer) value);
 	}
 
 	private void bindDatePicker(final DatePicker v, final Date value, final int pos) {

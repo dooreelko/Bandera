@@ -23,10 +23,7 @@ public class BrutalWriter {
 
 		sw.append(String.format("import %s;\n", modelClass.getQualifiedName()));
 
-		sw.append(String.format("import doo.bandera.ModelNormalizer;\n"));
-		sw.append(String.format("import doo.bandera.Parsers;\n"));
-
-		sw.append(String.format("public class %sNormalizer implements ModelNormalizer {\n", simpleName));
+		sw.append(String.format("public class %sNormalizer implements doo.bandera.ModelNormalizer {\n", simpleName));
 
 		sw.append(String.format("	private final %s model;\n", simpleName));
 
@@ -89,7 +86,7 @@ public class BrutalWriter {
 			BindingInfo info = thatClassBindings.get(resId);
 
 			if (info.setter != null) {
-				sw.append(String.format("				model.%s(Parsers.SafeParse(newValue, model.%s()));\n",
+				sw.append(String.format("				model.%s(doo.bandera.Parsers.SafeParse(newValue, model.%s()));\n",
 						info.setter.getSimpleName(), info.getter.getSimpleName()));
 			}
 			sw.append(String.format("				break;\n"));

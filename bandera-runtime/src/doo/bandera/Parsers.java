@@ -18,8 +18,12 @@ public class Parsers {
 	public static Date SafeParse(Object what, Date def) {
 		return what == null ? def : (Date)what;
 	}
-	
+
 	public static int SafeParse(Object what, int def) {
+		return SafeParse(what != null ? what.toString() : "", def);
+	}
+	
+	public static long SafeParse(Object what, long def) {
 		return SafeParse(what != null ? what.toString() : "", def);
 	}
 }
