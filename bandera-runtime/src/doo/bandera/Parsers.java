@@ -11,6 +11,14 @@ public class Parsers {
 		}
 	}
 
+	public static long SafeParse(String what, long def) {
+		try {
+			return Long.parseLong(what);
+		} catch (Exception e) {
+			return def;
+		}
+	}
+
 	public static String SafeParse(Object what, String def) {
 		return what == null ? def : what.toString();
 	}

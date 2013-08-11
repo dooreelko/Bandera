@@ -49,22 +49,19 @@ public class ModelBinder {
 	private void bindViews() {
 		for (int x = 0; x < views.length; x++) {
 			View v = views[x];
-			bindOneViewValue(v, x);
-			bindOneViewEvents(v, x);
+			bindOneView(v, x);
 		}
 	}
 
-	protected void bindOneViewValue(View v, int pos) {
+	protected void bindOneView(View v, int pos) {
 		Class<? extends View> viewClass = v.getClass();
 		Object value = normalizer.getModelValues()[pos];
-		if (value == null) {
-			return;
-		}
 		
 		if (viewClass == CLASS_NAME_TEXT_VIEW){
 			bindTextView((TextView)v, value);
 		} else if (viewClass == CLASS_NAME_EDIT_TEXT){
 			bindTextView((EditText)v, value);
+			bindEditTextEvents((EditText)v, pos);
 		} else if (viewClass == CLASS_NAME_DATE_PICKER){
 			bindDatePicker((DatePicker)v, (Date)value, pos);
 		} else if (viewClass == CLASS_NAME_IMAGE_VIEW){
@@ -74,16 +71,6 @@ public class ModelBinder {
 		} else if (viewClass == CLASS_NAME_PROGRESS_BAR){
 			bindProgressBar((ProgressBar)v, value);
 		}
-	}
-
-	private void bindOneViewEvents(final View v, final int pos) {
-		Class<? extends View> viewClass = v.getClass();
-		
-		if (viewClass == CLASS_NAME_EDIT_TEXT){
-			bindEditTextEvents((EditText)v, pos);
-		}
-
-		// the rest has no events to bind or already bound
 	}
 
 	protected void notifyViewChanged(final Object newValue, final int pos) {
@@ -102,10 +89,10 @@ public class ModelBinder {
 		Object[] newValues = normalizer.getModelValues();
 
 		for (int i=0; i<newValues.length; i++) {
-			if ((preValues[i] == null && newValues[i] != null) || !preValues[i].equals(newValues[i])) {
+			if (newValues[i] != null && !newValues[i].equals(preValues[i])) {
 				dirty = true;
 				preValues[i] = newValues[i];
-				bindOneViewValue(views[i], i);
+				bindOneView(views[i], i);
 			}
 		}
 
@@ -140,6 +127,10 @@ public class ModelBinder {
 	}
 
 	private void bindTextView(final TextView v, final Object value) {
+		if (value == null) {
+			return;
+		}
+		
 		String stringValue;
 		if (dateFormatter != null && value instanceof Date) {
 			stringValue = dateFormatter.format(value);
@@ -151,6 +142,10 @@ public class ModelBinder {
 	}
 	
 	private void bindImageView(ImageView v, Object value) {
+		if (value == null) {
+			return;
+		}
+		
 		Uri uri;
 		if (value instanceof Uri) {
 			uri = (Uri)value;
@@ -163,12 +158,16 @@ public class ModelBinder {
 	
 	private void bindProgressBar(ProgressBar v, Object value) {
 		v.setMax(100);
+		// polymorphism they said, it'll be fun they said
 		v.setProgress(value instanceof Long ? ((Long)value).intValue() : (Integer) value);
 	}
 
 	private void bindDatePicker(final DatePicker v, final Date value, final int pos) {
 		Calendar cal = Calendar.getInstance();
-		cal.setTime(value);
+
+		if (value != null) {
+			cal.setTime(value);
+		}
 		
 		v.init(cal.get(Calendar.YEAR), cal.get(Calendar.MONTH), cal.get(Calendar.DATE), new OnDateChangedListener() {
 			
