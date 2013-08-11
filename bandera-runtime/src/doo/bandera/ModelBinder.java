@@ -18,6 +18,7 @@ import android.widget.TextView;
 import doo.bandera.ModelNormalizer.ViewState;
 import doo.bandera.helper.SimpleTextWatcher;
 
+//TODO: this goes to Bandera-runtime
 public class ModelBinder {
 	private static final Class<DatePicker> CLASS_NAME_DATE_PICKER = DatePicker.class;
 	private static final Class<EditText> CLASS_NAME_EDIT_TEXT = EditText.class;
@@ -71,6 +72,16 @@ public class ModelBinder {
 		} else if (viewClass == CLASS_NAME_PROGRESS_BAR){
 			bindProgressBar((ProgressBar)v, value);
 		}
+	}
+
+	private void bindOneViewEvents(final View v, final int pos) {
+		Class<? extends View> viewClass = v.getClass();
+		
+		if (viewClass == CLASS_NAME_EDIT_TEXT){
+			bindEditTextEvents((EditText)v, pos);
+		}
+
+		// the rest has no events to bind or already bound
 	}
 
 	protected void notifyViewChanged(final Object newValue, final int pos) {
@@ -145,7 +156,6 @@ public class ModelBinder {
 		if (value == null) {
 			return;
 		}
-		
 		Uri uri;
 		if (value instanceof Uri) {
 			uri = (Uri)value;
@@ -164,9 +174,8 @@ public class ModelBinder {
 
 	private void bindDatePicker(final DatePicker v, final Date value, final int pos) {
 		Calendar cal = Calendar.getInstance();
-
 		if (value != null) {
-			cal.setTime(value);
+		cal.setTime(value);
 		}
 		
 		v.init(cal.get(Calendar.YEAR), cal.get(Calendar.MONTH), cal.get(Calendar.DATE), new OnDateChangedListener() {
