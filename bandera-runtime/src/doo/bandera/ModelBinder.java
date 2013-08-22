@@ -74,17 +74,8 @@ public class ModelBinder {
 		}
 	}
 
-	private void bindOneViewEvents(final View v, final int pos) {
-		Class<? extends View> viewClass = v.getClass();
-		
-		if (viewClass == CLASS_NAME_EDIT_TEXT){
-			bindEditTextEvents((EditText)v, pos);
-		}
-
-		// the rest has no events to bind or already bound
-	}
-
 	protected void notifyViewChanged(final Object newValue, final int pos) {
+		dirty = true;
 		normalizer.setModelValue(newValue, pos);
 
 		Object[] newValues = normalizer.getModelValues();
@@ -93,6 +84,9 @@ public class ModelBinder {
 		updateDirtyValues();
 	}
 
+	/**
+	 * Call this to notify the binder that you've changed the model and it should reflect that
+	 */
 	public void updateDirtyValues() {
 		softUpdate = true;
 
