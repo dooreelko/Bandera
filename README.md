@@ -1,5 +1,5 @@
-Bandera
-=======
+Bandera (MVC for Android)
+=========================
 
 Automation for android model-view binding
 
