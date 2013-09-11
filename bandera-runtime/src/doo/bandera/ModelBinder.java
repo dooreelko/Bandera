@@ -1,6 +1,5 @@
 package doo.bandera;
 
-import java.text.DateFormat;
 import java.util.Calendar;
 import java.util.Date;
 
@@ -14,7 +13,6 @@ import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.ProgressBar;
 import android.widget.TextView;
-
 import doo.bandera.ModelNormalizer.ViewState;
 import doo.bandera.helper.SimpleTextWatcher;
 
@@ -27,21 +25,25 @@ public class ModelBinder {
 	private static final Class<ImageButton> CLASS_NAME_IMAGE_BUTTON = ImageButton.class;
 	private static final Class<ProgressBar> CLASS_NAME_PROGRESS_BAR = ProgressBar.class;
 
-	
 	private final View[] views;
 	private final ModelNormalizer normalizer;
 	private Object[] preValues;
 	private boolean softUpdate;
 	private boolean dirty;
 
-	DateFormat dateFormatter;	
-	
+	private ICanUpdateViews updater;
+
 	public ModelBinder(Context ctx, ModelNormalizer normalizer, View[] views) {
+		this(ctx, normalizer, views, null);
+	}
+	
+	public ModelBinder(Context ctx, ModelNormalizer normalizer, View[] views, ICanUpdateViews viewUpdater) {
 		this.normalizer = normalizer;
 		this.views = views;
 
 		this.preValues = normalizer.getModelValues();
-		dateFormatter = DateFormat.getDateInstance();
+		
+		updater = viewUpdater == null ? new SimpleViewUpdater() : viewUpdater;
 		
 		bindViews();
 		updateViewStates();
@@ -136,17 +138,14 @@ public class ModelBinder {
 			return;
 		}
 		
-		String stringValue;
-		if (dateFormatter != null && value instanceof Date) {
-			stringValue = dateFormatter.format(value);
+		if (value instanceof Date) {
+			updater.updateTextView(v, (Date)value);
 		} else {
-			stringValue = value.toString();
+			updater.updateTextView(v, value.toString());
 		}
-		
-		v.setText(stringValue);
 	}
-	
-	private void bindImageView(ImageView v, Object value) {
+
+	private void bindImageView(final ImageView v, final Object value) {
 		if (value == null) {
 			return;
 		}
@@ -156,23 +155,35 @@ public class ModelBinder {
 		} else {
 			uri = Uri.parse(value.toString());
 		}
-		
-		v.setImageURI(uri);
+
+		updater.updateImageView(v, uri);
 	}
-	
-	private void bindProgressBar(ProgressBar v, Object value) {
-		v.setMax(100);
+
+	private void bindProgressBar(final ProgressBar v, final Object value) {
 		// polymorphism they said, it'll be fun they said
-		v.setProgress(value instanceof Long ? ((Long)value).intValue() : (Integer) value);
+		int intValue = 0;
+		if (value instanceof Long) {
+			intValue = ((Long)value).intValue();
+		}
+		else {
+			intValue = (Integer) value;
+		}
+
+		updater.updateProgressBar(v, intValue);
 	}
 
 	private void bindDatePicker(final DatePicker v, final Date value, final int pos) {
-		Calendar cal = Calendar.getInstance();
+		final Calendar cal = Calendar.getInstance();
 		if (value != null) {
-		cal.setTime(value);
+			cal.setTime(value);
 		}
 		
-		v.init(cal.get(Calendar.YEAR), cal.get(Calendar.MONTH), cal.get(Calendar.DATE), new OnDateChangedListener() {
+		int year = cal.get(Calendar.YEAR);
+		int month = cal.get(Calendar.MONTH);
+		int dayOfMonth = cal.get(Calendar.DATE);
+		updater.updateDatePicker(v, year, month, dayOfMonth);
+		
+		v.init(year, month, dayOfMonth, new OnDateChangedListener() {
 			
 			@Override
 			public void onDateChanged(DatePicker view, int year, int monthOfYear,
@@ -188,6 +199,7 @@ public class ModelBinder {
 			}
 		});
 	}
+
 
 	private void bindEditTextEvents(final EditText v, final int pos) {
 		//TODO: for now let's hope this will be called only once per EditText, mkay?
@@ -206,9 +218,5 @@ public class ModelBinder {
 	
 	public boolean isDirty() {
 		return dirty;
-	}
-	
-	public void setDateFormatter(DateFormat formatter) {
-		dateFormatter = formatter;
 	}
 }
